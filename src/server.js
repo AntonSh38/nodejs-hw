@@ -8,7 +8,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import notesRoutes from './routes/notesRoutes.js';
 
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT ?? 3000;
 
 app.use(logger);
 app.use(
@@ -27,5 +27,5 @@ app.use(errorHandler);
 await connectMongoDB();
 
 app.listen(port, () => {
-  console.log(`Server is runing at port ${port}`);
+  console.log(`Server is running at port ${port}`);
 });
