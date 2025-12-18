@@ -2,28 +2,37 @@ import { Joi, Segments } from 'celebrate';
 import { TAGS } from '../constants/tags.js';
 import { isValidObjectId } from 'mongoose';
 
+export const getAllNotesSchema = {
+  [Segments.QUERY]: Joi.object({
+    page: Joi.number().integer().min(1).default(1),
+    perPage: Joi.number().integer().min(5).max(20).default(10),
+    tag: Joi.string()
+      .valid(...TAGS)
+      .optional(),
+    search: Joi.string().trim().allow('').optional(),
+  }),
+};
+
 export const createNoteSchema = {
   [Segments.BODY]: Joi.object({
-    title: Joi.string().min(1).max(30).required().messages({
+    title: Joi.string().min(1).max(50).required().messages({
       'string.base': 'Title must be a string',
+      'string.empty': 'Title cannot be empty',
       'string.min': 'Title should have at least {#limit} characters',
       'string.max': 'Title should have at most {#limit} characters',
       'any.required': 'Title is required',
     }),
-    content: Joi.string().min(1).max(65).required().messages({
+    content: Joi.string().allow('').max(100).optional().messages({
       'string.base': 'Content must be a string',
-      'string.min': 'Content must be at least {#limit}',
       'string.max': 'Content must be at most {#limit}',
-      'any.required': 'Content is required',
     }),
 
     tag: Joi.string()
       .valid(...TAGS)
-      .required()
+      .optional()
       .messages({
-        'any.only':
-          'Tag must be one of: work, personal, meeting, shopping, ideas, travel, finance,health, tmportant, todo',
-        'any.required': 'Tag is required',
+        'any.only': `Tag must be one of: ${TAGS.join(', ')}`,
+        'string.empty': 'Tag cannot be empty',
       }),
   }),
 };
@@ -32,7 +41,7 @@ const objectIdValidator = (value, helpers) => {
   return !isValidObjectId(value) ? helpers.message('Invalid id format') : value;
 };
 
-export const noteIdParamSchema = {
+export const noteIdSchema = {
   [Segments.PARAMS]: Joi.object({
     noteId: Joi.string().custom(objectIdValidator).required(),
   }),
@@ -43,8 +52,8 @@ export const updateNoteSchema = {
     noteId: Joi.string().custom(objectIdValidator).required(),
   }),
   [Segments.BODY]: Joi.object({
-    title: Joi.string().min(1).max(30),
-    content: Joi.number().integer().min(1).max(65),
+    title: Joi.string().min(1).max(50),
+    content: Joi.string().allow('').max(100),
     tag: Joi.string().valid(...TAGS),
   }).min(1),
 };
