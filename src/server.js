@@ -8,6 +8,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import notesRoutes from './routes/notesRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import { errors } from 'celebrate';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 const port = process.env.PORT ?? 3000;
@@ -19,7 +20,13 @@ app.use(
     limit: '100kb',
   }),
 );
-app.use(cors());
+app.use(
+  cors({
+    origin: port,
+    credentials: true,
+  }),
+);
+app.use(cookieParser());
 
 app.use('/auth', authRoutes);
 app.use('/notes', notesRoutes);
