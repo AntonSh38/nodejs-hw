@@ -4,12 +4,13 @@ import bcrypt from 'bcrypt';
 import { createSession, setSessionCookies } from '../services/auth.js';
 import { Session } from '../models/session.js';
 
-export const registerUser = async (req, res) => {
+export const registerUser = async (req, res, next) => {
   const { email, password } = req.body;
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    throw createHttpError(400, 'Email in use');
+    next(createHttpError(400, 'Email in use'));
+    return;
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -25,17 +26,19 @@ export const registerUser = async (req, res) => {
   res.status(201).json(newUser);
 };
 
-export const loginUser = async (req, res) => {
+export const loginUser = async (req, res, next) => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ email });
   if (!user) {
-    throw createHttpError(401, 'Invalid credentials');
+    next(createHttpError(401, 'Invalid credentials'));
+    return;
   }
 
   const isValidPassword = await bcrypt.compare(password, user.password);
   if (!isValidPassword) {
-    throw createHttpError(401, 'Invalid credentials');
+    next(createHttpError(401, 'Invalid credentials'));
+    return;
   }
 
   await Session.deleteOne({ userId: user._id });
@@ -43,6 +46,35 @@ export const loginUser = async (req, res) => {
   setSessionCookies(res, newSession);
 
   res.status(200).json(user);
+};
+
+export const refreshUserSession = async (req, res, next) => {
+  const session = await Session.findOne({
+    _id: req.cookies.sessionId,
+    refreshToken: req.cookies.refreshToken,
+  });
+
+  if (!session) {
+    next(createHttpError(401, 'Session not found'));
+    return;
+  }
+
+  const isSessionTokenExpired =
+    new Date() > new Date(session.refreshTokenValidUntil);
+
+  if (isSessionTokenExpired) {
+    next(createHttpError(401, 'Session token expired'));
+  }
+
+  await Session.deleteOne({
+    _id: req.cookies.sessionId,
+    refreshToken: req.cookies.refreshToken,
+  });
+
+  const newSession = await createSession(session.userId);
+  setSessionCookies(res, newSession);
+
+  res.status(200).json({ message: 'Session refreshed' });
 };
 
 export const logoutUser = async (req, res) => {
