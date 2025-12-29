@@ -20,12 +20,7 @@ app.use(
     limit: '100kb',
   }),
 );
-app.use(
-  cors({
-    origin: port,
-    credentials: true,
-  }),
-);
+app.use(cors());
 app.use(cookieParser());
 
 app.use('/auth', authRoutes);
